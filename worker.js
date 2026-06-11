@@ -2,32 +2,34 @@ addEventListener('fetch', event => {
   event.respondWith(handleRequest(event.request))
 })
 
-const BACKEND = "http://192.168.1.8:25500"; // 替换成你实际的后端地址
+const BACKEND = "http://192.168.1.8:25500"; // 替换为你的 Subconverter 后端地址
 
 async function handleRequest(request) {
   const url = new URL(request.url)
+  const pathname = url.pathname
 
-  // 如果请求 /sub，直接代理到后端
-  if (url.pathname === '/sub') {
+  // 代理 /sub 请求到后端
+  if (pathname === '/sub') {
     const target = url.searchParams.get('target')
     const subUrl = url.searchParams.get('url')
+
     if (!target || !subUrl) {
       return new Response('Missing target or url', { status: 400 })
     }
 
     try {
-      const res = await fetch(`${BACKEND}/sub?target=${encodeURIComponent(target)}&url=${encodeURIComponent(subUrl)}`)
+      const res = await fetch(BACKEND + '/sub?target=' + encodeURIComponent(target) + '&url=' + encodeURIComponent(subUrl))
       const text = await res.text()
       return new Response(text, {
         status: res.status,
         headers: { 'Content-Type': res.headers.get('Content-Type') || 'text/plain;charset=utf-8' }
       })
-    } catch(err) {
+    } catch (err) {
       return new Response(`转换失败: ${err}`, { status: 500 })
     }
   }
 
-  // 默认返回前端页面
+  // 返回前端网页
   const html = `<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -93,7 +95,7 @@ async function convertSub(){
   const target=document.getElementById('target').value;
   const result=document.getElementById('result');
   if(!url){alert('请输入订阅或节点链接');return;}
-  const api=`/sub?target=${encodeURIComponent(target)}&url=${encodeURIComponent(url)}`;
+  const api='/sub?target='+encodeURIComponent(target)+'&url='+encodeURIComponent(url);
   result.value='Converting...';
   try{
     const controller=new AbortController();
@@ -101,12 +103,12 @@ async function convertSub(){
     const res=await fetch(api,{method:'GET',signal:controller.signal,headers:{Accept:'*/*'}});
     clearTimeout(timeout);
     const text=await res.text();
-    if(!res.ok){result.value=`HTTP ${res.status}\\n\\n${text||'后端未返回错误内容'}`;return;}
+    if(!res.ok){result.value='HTTP '+res.status+'\\n\\n'+(text||'后端未返回错误内容');return;}
     if(!text||text.trim()===''){result.value='转换完成，但返回内容为空\\n可能原因：\\n1. 订阅链接或节点链接无效\\n2. 订阅内容为空或不支持该协议\\n3. 节点数量过多导致解析超时\\n4. 后端配置异常';return;}
     result.value=text;
   }catch(err){
     if(err.name==='AbortError'){result.value='转换超时（60秒）\\n请检查：\\n1. 订阅或节点链接是否有效\\n2. OpenWrt宿主机是否能访问节点\\n3. 节点数量过多\\n4. 后端日志是否报错';return;}
-    result.value=`请求失败\\n\\n${err}`;
+    result.value='请求失败\\n\\n'+err;
   }
 }
 
@@ -126,9 +128,8 @@ function downloadFile(){
   document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(a.href);
 }
 </script>
-</body></html>`
+</body>
+</html>`
 
-  return new Response(html, {
-    headers: { 'Content-Type': 'text/html;charset=utf-8' }
-  })
+  return new Response(html, { headers: { 'Content-Type': 'text/html;charset=utf-8' } })
 }
