@@ -2,7 +2,7 @@ addEventListener('fetch', event => {
   event.respondWith(handleRequest(event.request))
 })
 
-const BACKEND = "http://192.168.1.8:25500"; // 替换为你的 Subconverter 后端地址
+const BACKEND = "http://tunnel.chaxiaoxu.us.ci"; // 替换为你的 Subconverter 后端地址
 
 async function handleRequest(request) {
   const url = new URL(request.url)
